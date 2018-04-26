@@ -7,38 +7,27 @@ import { UploadTarball, ReadTarball } from '@verdaccio/streams';
 import type { IUploadTarball } from '@verdaccio/streams';
 import type { Callback, Logger, Package } from '@verdaccio/types';
 import type { ILocalPackageManager } from '@verdaccio/local-storage';
-import { error503, error409, error404, convertS3GetError } from './s3errors';
+import { error409, error404, convertS3GetError } from './s3errors';
+import type { S3Config } from './config';
 
 const pkgFileName = 'package.json';
 
 // This is initialized for a single package
 
-export default class LocalFS implements ILocalPackageManager {
-  bucket: string;
-  packageName: string;
+export default class S3Fs implements ILocalPackageManager {
+  config: S3Config;
   logger: Logger;
-  s3: any;
+  packageName: string;
+  s3: S3;
   _localData: any;
 
-  constructor(bucket: string, packageName: string, logger: Logger) {
-    this.bucket = bucket;
+  constructor(config: S3Config, packageName: string, logger: Logger) {
+    this.config = config;
     this.packageName = packageName;
     this.logger = logger;
     this.s3 = new S3();
   }
 
-  /**
-  2. read package.json
-  3. updateFn(pkg, cb), and wait for cb
-  4. write package.json.tmp
-  5. move package.json.tmp package.json
-  6. callback(err?)
-  * @param {*} name
-  * @param {*} updateHandler
-  * @param {*} onWrite
-  * @param {*} transformPackage
-  * @param {*} onEnd
-  */
   updatePackage(name: string, updateHandler: Callback, onWrite: Callback, transformPackage: Function, onEnd: Callback) {
     (async () => {
       try {
@@ -51,46 +40,42 @@ export default class LocalFS implements ILocalPackageManager {
           }
         });
       } catch (err) {
-        debugger;
         return onEnd(err);
       }
     })();
   }
 
   async _getData(): Promise<any> {
-    if (!this._localData) {
-      return await new Promise((resolve, reject) => {
-        this.s3.getObject(
-          {
-            Bucket: this.bucket,
-            Key: `${this.packageName}/${pkgFileName}`
-          },
-          (err, response) => {
-            if (err) {
-              reject(convertS3GetError(err));
-              return;
-            }
-            const data = JSON.parse(response.Body.toString());
-            resolve(data);
+    return await new Promise((resolve, reject) => {
+      this.s3.getObject(
+        {
+          Bucket: this.config.bucket,
+          Key: `${this.config.keyPrefix}${this.packageName}/${pkgFileName}`
+        },
+        (err, response) => {
+          if (err) {
+            reject(convertS3GetError(err));
+            return;
           }
-        );
-      });
-    }
-    return this._localData;
+          const data = JSON.parse(response.Body.toString());
+          resolve(data);
+        }
+      );
+    });
   }
 
   deletePackage(fileName: string, callback: Callback) {
     this.s3.deleteObject(
       {
-        Bucket: this.bucket,
-        Key: `${this.packageName}/${fileName}`
+        Bucket: this.config.bucket,
+        Key: `${this.config.keyPrefix}${this.packageName}/${fileName}`
       },
       (err, data) => {
         if (err) {
-          debugger;
-          throw err;
+          callback(err);
+        } else {
+          callback();
         }
-        callback();
       }
     );
   }
@@ -98,28 +83,29 @@ export default class LocalFS implements ILocalPackageManager {
   removePackage(callback: Callback): void {
     this.s3.listObjectsV2(
       {
-        Bucket: this.bucket,
-        Prefix: this.packageName
+        Bucket: this.config.bucket,
+        Prefix: `${this.config.keyPrefix}${this.packageName}`
       },
       (err, data) => {
         if (err) {
-          debugger;
-          throw err;
-        }
-        debugger;
-        this.s3.deleteObjects(
-          {
-            Bucket: this.bucket,
-            Delete: []
-          },
-          (err, data) => {
-            if (err) {
-              debugger;
-              throw err;
+          callback(err);
+        } else if (data.KeyCount) {
+          this.s3.deleteObjects(
+            {
+              Bucket: this.config.bucket,
+              Delete: { Objects: data.Contents }
+            },
+            (err, data) => {
+              if (err) {
+                callback(err);
+              } else {
+                callback();
+              }
             }
-            callback();
-          }
-        );
+          );
+        } else {
+          callback();
+        }
       }
     );
   }
@@ -132,8 +118,8 @@ export default class LocalFS implements ILocalPackageManager {
     this.s3.putObject(
       {
         Body: JSON.stringify(value, null, '  '),
-        Bucket: this.bucket,
-        Key: `${this.packageName}/${pkgFileName}`
+        Bucket: this.config.bucket,
+        Key: `${this.config.keyPrefix}${this.packageName}/${pkgFileName}`
       },
       cb
     );
@@ -159,8 +145,8 @@ export default class LocalFS implements ILocalPackageManager {
     });
 
     const baseS3Params = {
-      Bucket: this.bucket,
-      Key: `${this.packageName}/${name}`
+      Bucket: this.config.bucket,
+      Key: `${this.config.keyPrefix}${this.packageName}/${name}`
     };
 
     this.s3.getObject(baseS3Params, (err, response) => {
@@ -185,7 +171,6 @@ export default class LocalFS implements ILocalPackageManager {
                 await s3upload;
                 uploadStream.emit('success');
               } catch (err) {
-                debugger;
                 uploadStream.emit('error', err);
               }
             };
@@ -197,7 +182,6 @@ export default class LocalFS implements ILocalPackageManager {
           };
 
           uploadStream.abort = async () => {
-            debugger;
             try {
               await s3upload;
             } finally {
@@ -224,8 +208,8 @@ export default class LocalFS implements ILocalPackageManager {
 
     this.s3.getObject(
       {
-        Bucket: this.bucket,
-        Key: `${this.packageName}/${name}`
+        Bucket: this.config.bucket,
+        Key: `${this.config.keyPrefix}${this.packageName}/${name}`
       },
       (err, data) => {
         if (!aborted) {

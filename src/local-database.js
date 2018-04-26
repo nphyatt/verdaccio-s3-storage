@@ -1,29 +1,30 @@
 // @flow
 
-import _ from 'lodash';
-import Path from 'path';
-import LocalFS from './local-fs';
-import type { StorageList, LocalStorage, Logger, Config, Callback } from '@verdaccio/types';
+import type { LocalStorage, Logger, Config, Callback } from '@verdaccio/types';
 import type { IPackageStorage, ILocalData } from '@verdaccio/local-storage';
 import { S3 } from 'aws-sdk';
+import type { S3Config } from './config';
+import S3Fs from './local-fs';
 
-/**
- * Handle local database.
- */
-class LocalDatabase implements ILocalData {
+export default class S3Database implements ILocalData {
   logger: Logger;
-  config: Config;
-  bucket: string;
+  config: S3Config;
+  s3: S3;
   _localData: ?LocalStorage;
 
   constructor(config: Config, logger: Logger) {
-    this.config = config;
     this.logger = logger;
-    this.bucket = config.store['s3-storage'].bucket;
-    this.s3 = new S3();
-    if (!this.bucket) {
+    // copy so we don't mutate
+    if (!config) {
+      throw new Error('s3 storage missing config. Add `store.s3-storage` to your config file');
+    }
+    this.config = Object.assign({}, (config.store: any)['s3-storage']);
+    if (!this.config.bucket) {
       throw new Error('s3 storage requires a bucket');
     }
+    const configKeyPrefix = this.config.keyPrefix;
+    this.config.keyPrefix = configKeyPrefix != null ? (configKeyPrefix.endsWith('/') ? configKeyPrefix : `${configKeyPrefix}/`) : '';
+    this.s3 = new S3();
   }
 
   async getSecret(): Promise<any> {
@@ -84,22 +85,20 @@ class LocalDatabase implements ILocalData {
 
   /**
    * Return all database elements.
-   * @return {Array}
    */
   get(cb: Callback) {
     this._getData().then(data => cb(null, data.list));
   }
 
   /**
-   * Syncronize {create} database whether does not exist.
-   * @return {Error|*}
+   * Create/write database
    */
   async _sync() {
     await new Promise((resolve, reject) => {
       this.s3.putObject(
         {
-          Bucket: this.bucket,
-          Key: 'verdaccio-s3-db.json',
+          Bucket: this.config.bucket,
+          Key: `${this.config.keyPrefix}verdaccio-s3-db.json`,
           Body: JSON.stringify(this._localData)
         },
         (err, data) => {
@@ -114,60 +113,32 @@ class LocalDatabase implements ILocalData {
   }
 
   getPackageStorage(packageName: string): IPackageStorage {
-    // $FlowFixMe
-    const packagePath: string = this._getLocalStoragePath(this.config.getMatchedPackagesSpec(packageName).storage);
-
-    if (_.isString(packagePath) === false) {
-      this.logger.debug({ name: packageName }, 'this package has no storage defined: @{name}');
-      return;
-    }
-
-    return new LocalFS(this.bucket, packageName, this.logger);
-  }
-
-  /**
-   * Verify the right local storage location.
-   * @param {String} path
-   * @return {String}
-   * @private
-   */
-  _getLocalStoragePath(path: string): string {
-    if (_.isNil(path) === false) {
-      return path;
-    }
-
-    return this.config.storage;
-  }
-
-  /**
-   * Build the local database path.
-   * @param {Object} config
-   * @return {string|String|*}
-   * @private
-   */
-  _buildStoragePath(config: Config) {
-    return Path.join(Path.resolve(Path.dirname(config.self_path || ''), config.storage, '.verdaccio-s3-db.json'));
+    return new S3Fs(this.config, packageName, this.logger);
   }
 
   async _getData(): Promise<LocalStorage> {
     if (!this._localData) {
       this._localData = await new Promise((resolve, reject) => {
-        this.s3.getObject({ Bucket: this.bucket, Key: 'verdaccio-s3-db.json' }, (err, response) => {
-          if (err) {
-            if (err.code === 'NoSuchKey') {
-              resolve({ list: [], secret: '' });
-            } else {
-              reject(err);
+        this.s3.getObject(
+          {
+            Bucket: this.config.bucket,
+            Key: `${this.config.keyPrefix}verdaccio-s3-db.json`
+          },
+          (err, response) => {
+            if (err) {
+              if (err.code === 'NoSuchKey') {
+                resolve({ list: [], secret: '' });
+              } else {
+                reject(err);
+              }
+              return;
             }
-            return;
+            const data = JSON.parse(response.Body.toString());
+            resolve(data);
           }
-          const data = JSON.parse(response.Body.toString());
-          resolve(data);
-        });
+        );
       });
     }
     return this._localData;
   }
 }
-
-export default LocalDatabase;
