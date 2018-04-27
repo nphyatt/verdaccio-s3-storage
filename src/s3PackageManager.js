@@ -1,20 +1,16 @@
 // @flow
 
-import stream from 'stream';
-
 import { S3 } from 'aws-sdk';
 import { UploadTarball, ReadTarball } from '@verdaccio/streams';
-import type { IUploadTarball } from '@verdaccio/streams';
+import type { IUploadTarball, IReadTarball } from '@verdaccio/streams';
 import type { Callback, Logger, Package } from '@verdaccio/types';
 import type { ILocalPackageManager } from '@verdaccio/local-storage';
-import { error409, error404, convertS3GetError } from './s3errors';
+import { error409, error503, error404, convertS3GetError } from './s3Errors';
 import type { S3Config } from './config';
 
 const pkgFileName = 'package.json';
 
-// This is initialized for a single package
-
-export default class S3Fs implements ILocalPackageManager {
+export default class S3PackageManager implements ILocalPackageManager {
   config: S3Config;
   logger: Logger;
   packageName: string;
@@ -149,10 +145,14 @@ export default class S3Fs implements ILocalPackageManager {
       Key: `${this.config.keyPrefix}${this.packageName}/${name}`
     };
 
+    // TODO: this is super heavy, we should only do getDetails, but it's not available
+    // in the node sdk
+    // TODO: getObjectMetadata?
     this.s3.getObject(baseS3Params, (err, response) => {
       if (err) {
         err = convertS3GetError(err);
         if (err !== error404) {
+          debugger;
           throw err;
         } else {
           const s3upload = new Promise((resolve, reject) => {
@@ -197,36 +197,48 @@ export default class S3Fs implements ILocalPackageManager {
     return uploadStream;
   }
 
-  readTarball(name: string, readTarballStream: any) {
-    readTarballStream = new ReadTarball();
+  readTarball(name: string): IReadTarball {
+    const readTarballStream = new ReadTarball();
 
-    let aborted = false;
+    const request = this.s3.getObject({
+      Bucket: this.config.bucket,
+      Key: `${this.config.keyPrefix}${this.packageName}/${name}`
+    });
+
+    let headersSent = false;
+
+    const readStream = request
+      .on('httpHeaders', (statusCode, headers) => {
+        // don't process status code errors here, we'll do that in readStream.on('error'
+        // otherwise they'll be processed twice
+
+        // verdaccio force garbage collects a stream on 404, so we can't emit more
+        // than one error or it'll fail
+        // https://github.com/verdaccio/verdaccio/blob/c1bc261/src/lib/storage.js#L178
+
+        const contentLength = parseInt(headers['content-length'], 10);
+
+        // not sure this is necessary
+        if (headersSent) {
+          return;
+        }
+
+        headersSent = true;
+
+        readTarballStream.emit('content-length', contentLength);
+        readTarballStream.emit('open');
+      })
+      .createReadStream();
+
+    readStream.on('error', err => {
+      readTarballStream.emit('error', convertS3GetError(err));
+    });
+
+    readStream.pipe(readTarballStream);
 
     readTarballStream.abort = () => {
-      aborted = true;
+      readStream.destroy();
     };
-
-    this.s3.getObject(
-      {
-        Bucket: this.config.bucket,
-        Key: `${this.config.keyPrefix}${this.packageName}/${name}`
-      },
-      (err, data) => {
-        if (!aborted) {
-          if (err) {
-            readTarballStream.emit('error', convertS3GetError(err));
-          } else {
-            const bufferStream = new stream.PassThrough();
-            // NOTE: no chunking is done here
-            bufferStream.end(data.Body);
-
-            readTarballStream.emit('content-length', data.ContentLength);
-            readTarballStream.emit('open');
-            bufferStream.pipe(readTarballStream);
-          }
-        }
-      }
-    );
 
     return readTarballStream;
   }
