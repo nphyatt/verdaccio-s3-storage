@@ -148,30 +148,40 @@ export default class S3PackageManager implements ILocalPackageManager {
     // TODO: this is super heavy, we should only do getDetails, but it's not available
     // in the node sdk
     // TODO: getObjectMetadata?
-    this.s3.getObject(baseS3Params, (err, response) => {
-      if (err) {
-        err = convertS3GetError(err);
-        if (err !== error404) {
+    this.s3.listObjectVersions(
+      {
+        Bucket: this.config.bucket,
+        Prefix: `${this.config.keyPrefix}${this.packageName}/${name}`
+      },
+      (err, response) => {
+        if (err) {
           debugger;
-          throw err;
+          throw convertS3GetError(err);
+        }
+        if (response.Versions.length != 0) {
+          uploadStream.emit('error', error409);
         } else {
-          const s3upload = new Promise((resolve, reject) => {
-            this.s3.upload(Object.assign({}, baseS3Params, { Body: uploadStream }), (err, data) => {
+          const managedUpload = this.s3.upload(Object.assign({}, baseS3Params, { Body: uploadStream }));
+          // NOTE: there's a managedUpload.promise, but it doesn't seem to work
+
+          const promise = new Promise((resolve, reject) => {
+            managedUpload.send((err, data) => {
               if (err) {
-                reject(err);
+                reject(convertS3GetError(err));
               } else {
                 resolve();
               }
             });
+            uploadStream.emit('open');
           });
 
           uploadStream.done = () => {
             const onEnd = async () => {
               try {
-                await s3upload;
+                await promise;
                 uploadStream.emit('success');
               } catch (err) {
-                uploadStream.emit('error', err);
+                uploadStream.emit('error', convertS3GetError(err));
               }
             };
             if (streamEnded) {
@@ -181,18 +191,16 @@ export default class S3PackageManager implements ILocalPackageManager {
             }
           };
 
-          uploadStream.abort = async () => {
+          uploadStream.abort = () => {
             try {
-              await s3upload;
+              managedUpload.abort();
             } finally {
               this.s3.deleteObject(baseS3Params);
             }
           };
         }
-      } else {
-        uploadStream.emit('error', error409);
       }
-    });
+    );
 
     return uploadStream;
   }
@@ -216,17 +224,21 @@ export default class S3PackageManager implements ILocalPackageManager {
         // than one error or it'll fail
         // https://github.com/verdaccio/verdaccio/blob/c1bc261/src/lib/storage.js#L178
 
-        const contentLength = parseInt(headers['content-length'], 10);
+        if (headers['content-length']) {
+          const contentLength = parseInt(headers['content-length'], 10);
 
-        // not sure this is necessary
-        if (headersSent) {
-          return;
+          // not sure this is necessary
+          if (headersSent) {
+            console.log('********* headers already sent');
+            return;
+          }
+
+          headersSent = true;
+
+          readTarballStream.emit('content-length', contentLength);
+          // we know there's content, so open the stream
+          readTarballStream.emit('open');
         }
-
-        headersSent = true;
-
-        readTarballStream.emit('content-length', contentLength);
-        readTarballStream.emit('open');
       })
       .createReadStream();
 
@@ -237,6 +249,7 @@ export default class S3PackageManager implements ILocalPackageManager {
     readStream.pipe(readTarballStream);
 
     readTarballStream.abort = () => {
+      request.abort();
       readStream.destroy();
     };
 

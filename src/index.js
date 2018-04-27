@@ -98,7 +98,7 @@ export default class S3Database implements ILocalData {
   }
 
   // returns an instance of a class managing the storage for a single package
-  getPackageStorage(packageName: string): IPackageStorage {
+  getPackageStorage(packageName: string): S3PackageManager {
     return new S3PackageManager(this.config, packageName, this.logger);
   }
 
