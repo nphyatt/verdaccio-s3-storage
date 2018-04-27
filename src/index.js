@@ -1,7 +1,7 @@
 // @flow
 
 import type { LocalStorage, Logger, Config, Callback } from '@verdaccio/types';
-import type { IPackageStorage, ILocalData } from '@verdaccio/local-storage';
+import type { ILocalData } from '@verdaccio/local-storage';
 import { S3 } from 'aws-sdk';
 import type { S3Config } from './config';
 import S3PackageManager from './s3PackageManager';
@@ -42,12 +42,12 @@ export default class S3Database implements ILocalData {
         data.list.push(name);
         try {
           this._sync();
-          cb();
+          cb(null);
         } catch (err) {
           cb(err);
         }
       } else {
-        cb();
+        cb(null);
       }
     });
   }
@@ -66,7 +66,7 @@ export default class S3Database implements ILocalData {
 
       try {
         this._sync();
-        cb();
+        cb(null);
       } catch (err) {
         cb(err);
       }

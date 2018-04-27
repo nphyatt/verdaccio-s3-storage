@@ -6,6 +6,7 @@ import type { IUploadTarball, IReadTarball } from '@verdaccio/streams';
 import type { Callback, Logger, Package } from '@verdaccio/types';
 import type { ILocalPackageManager } from '@verdaccio/local-storage';
 import { error409, error503, error404, convertS3GetError } from './s3Errors';
+import { deleteKeyPrefix } from './deleteKeyPrefix';
 import type { S3Config } from './config';
 
 const pkgFileName = 'package.json';
@@ -77,33 +78,12 @@ export default class S3PackageManager implements ILocalPackageManager {
   }
 
   removePackage(callback: Callback): void {
-    this.s3.listObjectsV2(
-      {
-        Bucket: this.config.bucket,
-        Prefix: `${this.config.keyPrefix}${this.packageName}`
-      },
-      (err, data) => {
-        if (err) {
-          callback(err);
-        } else if (data.KeyCount) {
-          this.s3.deleteObjects(
-            {
-              Bucket: this.config.bucket,
-              Delete: { Objects: data.Contents }
-            },
-            (err, data) => {
-              if (err) {
-                callback(err);
-              } else {
-                callback();
-              }
-            }
-          );
-        } else {
-          callback();
-        }
-      }
-    );
+    deleteKeyPrefix(this.s3, {
+      Bucket: this.config.bucket,
+      Prefix: `${this.config.keyPrefix}${this.packageName}`
+    })
+      .then(() => callback(null))
+      .catch(callback);
   }
 
   createPackage(name: string, value: Package, cb: Function) {
