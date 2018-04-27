@@ -145,9 +145,8 @@ export default class S3PackageManager implements ILocalPackageManager {
       Key: `${this.config.keyPrefix}${this.packageName}/${name}`
     };
 
-    // TODO: this is super heavy, we should only do getDetails, but it's not available
-    // in the node sdk
-    // TODO: getObjectMetadata?
+    // NOTE: I'm using listObjectVersions so I don't have to download the full object with getObject.
+    // Preferably, I'd use getObjectMetadata or getDetails when it's available in the node sdk
     this.s3.listObjectVersions(
       {
         Bucket: this.config.bucket,
