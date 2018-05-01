@@ -5,6 +5,7 @@ import type { ILocalData } from '@verdaccio/local-storage';
 import { S3 } from 'aws-sdk';
 import type { S3Config } from './config';
 import S3PackageManager from './s3PackageManager';
+import { convertS3Error, is404Error } from './s3Errors';
 
 export default class S3Database implements ILocalData {
   logger: Logger;
@@ -36,26 +37,26 @@ export default class S3Database implements ILocalData {
     await this._sync();
   }
 
-  add(name: string, cb: Callback) {
+  add(name: string, callback: Callback) {
     this._getData().then(async data => {
       if (data.list.indexOf(name) === -1) {
         data.list.push(name);
         try {
           this._sync();
-          cb(null);
+          callback(null);
         } catch (err) {
-          cb(err);
+          callback(err);
         }
       } else {
-        cb(null);
+        callback(null);
       }
     });
   }
 
-  remove(name: string, cb: Callback) {
+  remove(name: string, callback: Callback) {
     this.get(async (err, data) => {
       if (err) {
-        cb(new Error('error on get'));
+        callback(new Error('error on get'));
       }
 
       const pkgName = data.indexOf(name);
@@ -66,15 +67,15 @@ export default class S3Database implements ILocalData {
 
       try {
         this._sync();
-        cb(null);
+        callback(null);
       } catch (err) {
-        cb(err);
+        callback(err);
       }
     });
   }
 
-  get(cb: Callback) {
-    this._getData().then(data => cb(null, data.list));
+  get(callback: Callback) {
+    this._getData().then(data => callback(null, data.list));
   }
 
   // Create/write database file to s3
@@ -112,7 +113,8 @@ export default class S3Database implements ILocalData {
           },
           (err, response) => {
             if (err) {
-              if (err.code === 'NoSuchKey') {
+              const s3Err = convertS3Error(err);
+              if (is404Error(s3Err)) {
                 resolve({ list: [], secret: '' });
               } else {
                 reject(err);

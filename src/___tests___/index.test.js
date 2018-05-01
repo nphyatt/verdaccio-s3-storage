@@ -31,10 +31,14 @@ describe('Local Database', () => {
   });
 
   afterEach(async () =>
-    deleteKeyPrefix(new S3(), {
-      Bucket: bucket,
-      Prefix: keyPrefix
-    }));
+    deleteKeyPrefix(
+      new S3(),
+      {
+        Bucket: bucket,
+        Prefix: keyPrefix
+      },
+      () => {}
+    ));
 
   test('should create an instance', () => {
     expect(db).toBeDefined();

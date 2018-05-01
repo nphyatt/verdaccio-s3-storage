@@ -5,7 +5,7 @@ import { UploadTarball, ReadTarball } from '@verdaccio/streams';
 import type { IUploadTarball, IReadTarball } from '@verdaccio/streams';
 import type { Callback, Logger, Package } from '@verdaccio/types';
 import type { ILocalPackageManager } from '@verdaccio/local-storage';
-import { error409, error503, error404, convertS3GetError } from './s3Errors';
+import { is404Error, convertS3Error, create409Error } from './s3Errors';
 import { deleteKeyPrefix } from './deleteKeyPrefix';
 import type { S3Config } from './config';
 
@@ -51,7 +51,7 @@ export default class S3PackageManager implements ILocalPackageManager {
         },
         (err, response) => {
           if (err) {
-            reject(convertS3GetError(err));
+            reject(convertS3Error(err));
             return;
           }
           const data = JSON.parse(response.Body.toString());
@@ -71,43 +71,63 @@ export default class S3PackageManager implements ILocalPackageManager {
         if (err) {
           callback(err);
         } else {
-          callback();
+          callback(null);
         }
       }
     );
   }
 
   removePackage(callback: Callback): void {
-    deleteKeyPrefix(this.s3, {
-      Bucket: this.config.bucket,
-      Prefix: `${this.config.keyPrefix}${this.packageName}`
-    })
-      .then(() => callback(null))
-      .catch(callback);
+    deleteKeyPrefix(
+      this.s3,
+      {
+        Bucket: this.config.bucket,
+        Prefix: `${this.config.keyPrefix}${this.packageName}`
+      },
+      callback
+    );
   }
 
-  createPackage(name: string, value: Package, cb: Function) {
-    this.savePackage(name, value, cb);
+  createPackage(name: string, value: Package, callback: Function) {
+    this.s3.headObject(
+      {
+        Bucket: this.config.bucket,
+        Key: `${this.config.keyPrefix}${this.packageName}/${pkgFileName}`
+      },
+      (err, data) => {
+        if (err) {
+          const s3Err = convertS3Error(err);
+          // only allow saving if this file doesn't exist already
+          if (is404Error(s3Err)) {
+            this.savePackage(name, value, callback);
+          } else {
+            callback(s3Err);
+          }
+        } else {
+          callback(create409Error());
+        }
+      }
+    );
   }
 
-  savePackage(name: string, value: Package, cb: Function) {
+  savePackage(name: string, value: Package, callback: Function) {
     this.s3.putObject(
       {
         Body: JSON.stringify(value, null, '  '),
         Bucket: this.config.bucket,
         Key: `${this.config.keyPrefix}${this.packageName}/${pkgFileName}`
       },
-      cb
+      callback
     );
   }
 
-  readPackage(name: string, cb: Function) {
+  readPackage(name: string, callback: Function) {
     (async () => {
       try {
         const data = await this._getData();
-        cb(null, data);
+        callback(null, data);
       } catch (err) {
-        cb(err);
+        callback(err);
       }
     })();
   }
@@ -127,6 +147,7 @@ export default class S3PackageManager implements ILocalPackageManager {
 
     // NOTE: I'm using listObjectVersions so I don't have to download the full object with getObject.
     // Preferably, I'd use getObjectMetadata or getDetails when it's available in the node sdk
+    // TODO: convert to headObject
     this.s3.listObjectVersions(
       {
         Bucket: this.config.bucket,
@@ -134,11 +155,11 @@ export default class S3PackageManager implements ILocalPackageManager {
       },
       (err, response) => {
         if (err) {
-          debugger;
-          throw convertS3GetError(err);
+          uploadStream.emit('error', convertS3Error(err));
+          return;
         }
         if (response.Versions.length != 0) {
-          uploadStream.emit('error', error409);
+          uploadStream.emit('error', create409Error());
         } else {
           const managedUpload = this.s3.upload(Object.assign({}, baseS3Params, { Body: uploadStream }));
           // NOTE: there's a managedUpload.promise, but it doesn't seem to work
@@ -146,7 +167,7 @@ export default class S3PackageManager implements ILocalPackageManager {
           const promise = new Promise((resolve, reject) => {
             managedUpload.send((err, data) => {
               if (err) {
-                reject(convertS3GetError(err));
+                uploadStream.emit('error', convertS3Error(err));
               } else {
                 resolve();
               }
@@ -160,7 +181,8 @@ export default class S3PackageManager implements ILocalPackageManager {
                 await promise;
                 uploadStream.emit('success');
               } catch (err) {
-                uploadStream.emit('error', convertS3GetError(err));
+                // already emitted in the promise above, necessary because of some issues
+                // with promises in jest
               }
             };
             if (streamEnded) {
@@ -173,6 +195,8 @@ export default class S3PackageManager implements ILocalPackageManager {
           uploadStream.abort = () => {
             try {
               managedUpload.abort();
+            } catch (err) {
+              uploadStream.emit('error', convertS3Error(err));
             } finally {
               this.s3.deleteObject(baseS3Params);
             }
@@ -222,7 +246,7 @@ export default class S3PackageManager implements ILocalPackageManager {
       .createReadStream();
 
     readStream.on('error', err => {
-      readTarballStream.emit('error', convertS3GetError(err));
+      readTarballStream.emit('error', convertS3Error(err));
     });
 
     readStream.pipe(readTarballStream);

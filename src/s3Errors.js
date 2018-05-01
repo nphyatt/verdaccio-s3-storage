@@ -12,13 +12,44 @@ class VerdaccioError extends Error {
   }
 }
 
-export const error503 = new VerdaccioError('resource temporarily unavailable', 500, 'EAGAIN');
-export const error404 = new VerdaccioError('no such package available', 404, 'ENOENT');
-export const error409 = new VerdaccioError('file exists', 409, 'EEXISTS');
+const error404Code = 'ENOENT';
 
-export function convertS3GetError(err: AwsError) {
-  if (err.code === 'NoSuchKey') {
-    return error404;
+export function is404Error(err: Error) {
+  return ((err: any): VerdaccioError).code === error404Code;
+}
+
+export function create404Error() {
+  return new VerdaccioError('no such package available', 404, error404Code);
+}
+
+const error409Code = 'EEXISTS';
+
+export function is409Error(err: Error) {
+  return ((err: any): VerdaccioError).code === error409Code;
+}
+
+export function create409Error() {
+  return new VerdaccioError('file exists', 409, error409Code);
+}
+
+const error503Code = 'EAGAIN';
+
+export function is503Error(err: Error) {
+  return ((err: any): VerdaccioError).code === error503Code;
+}
+
+export function create503Error() {
+  return new VerdaccioError('resource temporarily unavailable', 500, error503Code);
+}
+
+export function convertS3Error(err: AwsError): Error {
+  switch (err.code) {
+    case 'NoSuchKey':
+    case 'NotFound':
+      return create404Error();
+    case 'RequestAbortedError':
+      return new VerdaccioError('request aborted', 0, 'ABORTED');
+    default:
+      return (err: any);
   }
-  return err;
 }
