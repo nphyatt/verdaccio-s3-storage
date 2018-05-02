@@ -5,7 +5,7 @@ import { UploadTarball, ReadTarball } from '@verdaccio/streams';
 import type { IUploadTarball, IReadTarball } from '@verdaccio/streams';
 import type { Callback, Logger, Package } from '@verdaccio/types';
 import type { ILocalPackageManager } from '@verdaccio/local-storage';
-import { is404Error, convertS3Error, create409Error } from './s3Errors';
+import { is404Error, convertS3Error, create409Error, create404Error } from './s3Errors';
 import { deleteKeyPrefix } from './deleteKeyPrefix';
 import type { S3Config } from './config';
 
@@ -148,59 +148,60 @@ export default class S3PackageManager implements ILocalPackageManager {
     // NOTE: I'm using listObjectVersions so I don't have to download the full object with getObject.
     // Preferably, I'd use getObjectMetadata or getDetails when it's available in the node sdk
     // TODO: convert to headObject
-    this.s3.listObjectVersions(
+    this.s3.headObject(
       {
         Bucket: this.config.bucket,
-        Prefix: `${this.config.keyPrefix}${this.packageName}/${name}`
+        Key: `${this.config.keyPrefix}${this.packageName}/${name}`
       },
       (err, response) => {
         if (err) {
-          uploadStream.emit('error', convertS3Error(err));
-          return;
-        }
-        if (response.Versions.length != 0) {
-          uploadStream.emit('error', create409Error());
-        } else {
-          const managedUpload = this.s3.upload(Object.assign({}, baseS3Params, { Body: uploadStream }));
-          // NOTE: there's a managedUpload.promise, but it doesn't seem to work
+          const convertedErr = convertS3Error(err);
+          if (!is404Error(convertedErr)) {
+            uploadStream.emit('error', convertedErr);
+          } else {
+            const managedUpload = this.s3.upload(Object.assign({}, baseS3Params, { Body: uploadStream }));
+            // NOTE: there's a managedUpload.promise, but it doesn't seem to work
 
-          const promise = new Promise((resolve, reject) => {
-            managedUpload.send((err, data) => {
-              if (err) {
-                uploadStream.emit('error', convertS3Error(err));
-              } else {
-                resolve();
-              }
+            const promise = new Promise((resolve, reject) => {
+              managedUpload.send((err, data) => {
+                if (err) {
+                  uploadStream.emit('error', convertS3Error(err));
+                } else {
+                  resolve();
+                }
+              });
+              uploadStream.emit('open');
             });
-            uploadStream.emit('open');
-          });
 
-          uploadStream.done = () => {
-            const onEnd = async () => {
-              try {
-                await promise;
-                uploadStream.emit('success');
-              } catch (err) {
-                // already emitted in the promise above, necessary because of some issues
-                // with promises in jest
+            uploadStream.done = () => {
+              const onEnd = async () => {
+                try {
+                  await promise;
+                  uploadStream.emit('success');
+                } catch (err) {
+                  // already emitted in the promise above, necessary because of some issues
+                  // with promises in jest
+                }
+              };
+              if (streamEnded) {
+                onEnd();
+              } else {
+                uploadStream.on('end', onEnd);
               }
             };
-            if (streamEnded) {
-              onEnd();
-            } else {
-              uploadStream.on('end', onEnd);
-            }
-          };
 
-          uploadStream.abort = () => {
-            try {
-              managedUpload.abort();
-            } catch (err) {
-              uploadStream.emit('error', convertS3Error(err));
-            } finally {
-              this.s3.deleteObject(baseS3Params);
-            }
-          };
+            uploadStream.abort = () => {
+              try {
+                managedUpload.abort();
+              } catch (err) {
+                uploadStream.emit('error', convertS3Error(err));
+              } finally {
+                this.s3.deleteObject(baseS3Params);
+              }
+            };
+          }
+        } else {
+          uploadStream.emit('error', create409Error());
         }
       }
     );

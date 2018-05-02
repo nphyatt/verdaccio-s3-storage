@@ -107,12 +107,8 @@ Array [
 ]
 `;
 
-exports[`S3 package manager writeTarball() group writeTarball() success 1`] = `
+exports[`S3 package manager writeTarball() group writeTarball() fails on existing file 1`] = `
 Array [
-  Object {
-    "Key": "/_storage/new-readme-0.0.0.tgz",
-    "Size": 0,
-  },
   Object {
     "Key": "/readme-test/package.json",
     "Size": 1158,
@@ -120,6 +116,23 @@ Array [
   Object {
     "Key": "/readme-test/test-readme-0.0.0.tgz",
     "Size": 352,
+  },
+]
+`;
+
+exports[`S3 package manager writeTarball() group writeTarball() success 1`] = `
+Array [
+  Object {
+    "Key": "/readme-test/package.json",
+    "Size": 1158,
+  },
+  Object {
+    "Key": "/readme-test/test-readme-0.0.0.tgz",
+    "Size": 352,
+  },
+  Object {
+    "Key": "/write-storage/new-readme-0.0.0.tgz",
+    "Size": 0,
   },
 ]
 `;

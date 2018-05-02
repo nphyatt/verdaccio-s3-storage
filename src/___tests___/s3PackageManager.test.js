@@ -258,7 +258,7 @@ describe('S3 package manager', () => {
 
       const newFileName: string = 'new-readme-0.0.0.tgz';
       const readmeStorage = new S3PackageManager(config, 'readme-test', logger);
-      const writeStorage = new S3PackageManager(config, '_storage', logger);
+      const writeStorage = new S3PackageManager(config, 'write-storage', logger);
       const readTarballStream = readmeStorage.readTarball('test-readme-0.0.0.tgz');
       const writeTarballStream = writeStorage.writeTarball(newFileName);
 
@@ -287,12 +287,29 @@ describe('S3 package manager', () => {
       readTarballStream.pipe(writeTarballStream);
     });
 
+    test('writeTarball() fails on existing file', async done => {
+      await syncFixtureDir('readme-test');
+
+      const newFileName: string = 'test-readme-0.0.0.tgz';
+      const storage = new S3PackageManager(config, 'readme-test', logger);
+      const readTarballStream = storage.readTarball('test-readme-0.0.0.tgz');
+      const writeTarballStream = storage.writeTarball(newFileName);
+
+      writeTarballStream.on('error', err => {
+        expect(err).toBeTruthy();
+        expect(err.code).toBe('EEXISTS');
+        done();
+      });
+
+      readTarballStream.pipe(writeTarballStream);
+    });
+
     test('writeTarball() abort', async done => {
       await syncFixtureDir('readme-test');
 
       const newFileName: string = 'new-readme-abort-0.0.0.tgz';
       const readmeStorage = new S3PackageManager(config, 'readme-test', logger);
-      const writeStorage = new S3PackageManager(config, '_writeTarball', logger);
+      const writeStorage = new S3PackageManager(config, 'write-storage', logger);
       const readTarballStream = readmeStorage.readTarball('test-readme-0.0.0.tgz');
       const writeTarballStream = writeStorage.writeTarball(newFileName);
 
