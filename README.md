@@ -1,45 +1,23 @@
-# @verdaccio/local-storage
+# verdaccio-s3-storage
 
-📦 File system storage plugin for verdaccio 
+📦 AWS S3 storage plugin for verdaccio 
 
-
-[![CircleCI](https://circleci.com/gh/verdaccio/local-storage/tree/master.svg?style=svg)](https://circleci.com/gh/verdaccio/local-storage/tree/master)
-[![Backers on Open Collective](https://opencollective.com/verdaccio/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/verdaccio/sponsors/badge.svg)](#sponsors)
-[![Gitter chat](https://badges.gitter.im/verdaccio/questions.png)](https://gitter.im/verdaccio/)
-[![dependencies Status](https://david-dm.org/verdaccio/local-storage/status.svg)](https://david-dm.org/verdaccio/local-storage)
-[![Known Vulnerabilities](https://snyk.io/test/github/verdaccio/local-storage/badge.svg?targetFile=package.json)](https://snyk.io/test/github/verdaccio/local-storage?targetFile=package.json)
-[![codecov](https://codecov.io/gh/verdaccio/local-storage/branch/master/graph/badge.svg)](https://codecov.io/gh/verdaccio/local-storage)
-
-> This package is already built-in in verdaccio
+## Usage
 
 ```
-npm install @verdaccio/local-storage
+npm install verdaccio-s3-storage
 ```
 
-### API
+This will pull AWS credentials from your environment.
 
-### LocalDatabase
+In your verdaccio config, configure
 
-The main object that handle a JSON database the private packages.
+```yaml
+# necessary (see https://github.com/verdaccio/verdaccio/issues/673)
+storage: ./storage
 
-#### Constructor
-
+store:
+  s3-storage:
+    bucket: your-s3-bucket
+    keyPrefix: some-prefix # optional, has the effect of nesting all files in a subdirectory
 ```
-new LocalDatabase(config, logger);
-```
-
-* **config**: A verdaccio configuration instance.
-* **logger**: A logger instance
-
-### LocalFS
-
-A class that handle an package instance in the File System
-
-```
-new LocalFS(packageStoragePath, logger);
-```
-
-
-
-## License
-Verdaccio is [MIT licensed](https://github.com/verdaccio/local-storage/blob/master/LICENSE).
