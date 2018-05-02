@@ -42,7 +42,7 @@ export default class S3Database implements ILocalData {
       if (data.list.indexOf(name) === -1) {
         data.list.push(name);
         try {
-          this._sync();
+          await this._sync();
           callback(null);
         } catch (err) {
           callback(err);
@@ -66,7 +66,7 @@ export default class S3Database implements ILocalData {
       }
 
       try {
-        this._sync();
+        await this._sync();
         callback(null);
       } catch (err) {
         callback(err);

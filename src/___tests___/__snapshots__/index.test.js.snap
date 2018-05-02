@@ -1,12 +1,19 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Local Database Database CRUD should add an item to database 1`] = `Array []`;
+exports[`Local Database Database CRUD should add an item to database 1`] = `
+Array [
+  Object {
+    "Key": "/verdaccio-s3-db.json",
+    "Size": 31,
+  },
+]
+`;
 
 exports[`Local Database Database CRUD should remove an item to database 1`] = `
 Array [
   Object {
     "Key": "/verdaccio-s3-db.json",
-    "Size": 31,
+    "Size": 23,
   },
 ]
 `;
