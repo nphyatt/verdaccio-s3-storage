@@ -22,7 +22,7 @@ export default class S3PackageManager implements ILocalPackageManager {
     this.config = config;
     this.packageName = packageName;
     this.logger = logger;
-    this.s3 = new S3();
+    this.s3 = new S3({ endpoint: config.endpoint, region: config.region });
   }
 
   updatePackage(name: string, updateHandler: Callback, onWrite: Callback, transformPackage: Function, onEnd: Callback) {
