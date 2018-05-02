@@ -16,7 +16,6 @@ test/
 .npmignore
 .travis.yml
 *.tmp-*
-_storage/
 circle.yml
 travis.yml
 *.md
