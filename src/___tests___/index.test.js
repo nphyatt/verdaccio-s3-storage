@@ -6,6 +6,7 @@ import S3Database from '../';
 import Config from './__mocks__/Config';
 import logger from './__mocks__/Logger';
 import { deleteKeyPrefix } from '../deleteKeyPrefix';
+import { is404Error } from '../s3Errors';
 
 describe('Local Database', () => {
   let db: ILocalData;
@@ -30,15 +31,52 @@ describe('Local Database', () => {
     db = new S3Database(config, logger);
   });
 
-  afterEach(async () =>
-    deleteKeyPrefix(
-      new S3(),
-      {
-        Bucket: bucket,
-        Prefix: keyPrefix
-      },
-      () => {}
-    ));
+  afterEach(async () => {
+    const s3 = new S3();
+    // snapshot test the final state of s3
+    await new Promise((resolve, reject) => {
+      s3.listObjectsV2({ Bucket: bucket, Prefix: config.store['s3-storage'].keyPrefix }, (err, data) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        expect(data.IsTruncated).toBe(false); // none of the tests we do should create this much data
+        // remove the stuff that changes from the results
+        expect(
+          data.Contents.map(({ Key, Size }) => ({
+            Key: Key.split(keyPrefix)[1],
+            Size
+          }))
+        ).toMatchSnapshot();
+        resolve();
+      });
+    });
+    // clean up s3
+    try {
+      await new Promise((resolve, reject) => {
+        deleteKeyPrefix(
+          s3,
+          {
+            Bucket: bucket,
+            Prefix: keyPrefix
+          },
+          err => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          }
+        );
+      });
+    } catch (err) {
+      if (is404Error(err)) {
+        // ignore
+      } else {
+        throw err;
+      }
+    }
+  });
 
   test('should create an instance', () => {
     expect(db).toBeDefined();
