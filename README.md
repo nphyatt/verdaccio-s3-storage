@@ -22,4 +22,5 @@ store:
     keyPrefix: some-prefix # optional, has the effect of nesting all files in a subdirectory
     region: us-west-2 # optional, will use aws s3's default behavior if not specified
     endpoint: https://{service}.{region}.amazonaws.com # optional, will use aws s3's default behavior if not specified
+    s3ForcePathStyle: false # optional, will use path style URLs for S3 objects
 ```
