@@ -5,7 +5,7 @@ import { UploadTarball, ReadTarball } from '@verdaccio/streams';
 import type { IUploadTarball, IReadTarball } from '@verdaccio/streams';
 import type { Callback, Logger, Package } from '@verdaccio/types';
 import type { ILocalPackageManager } from '@verdaccio/local-storage';
-import { is404Error, convertS3Error, create409Error, create404Error } from './s3Errors';
+import { is404Error, convertS3Error, create409Error } from './s3Errors';
 import { deleteKeyPrefix } from './deleteKeyPrefix';
 import type { S3Config } from './config';
 
