@@ -25,7 +25,11 @@ export default class S3Database implements ILocalData {
     }
     const configKeyPrefix = this.config.keyPrefix;
     this.config.keyPrefix = configKeyPrefix != null ? (configKeyPrefix.endsWith('/') ? configKeyPrefix : `${configKeyPrefix}/`) : '';
-    this.s3 = new S3({ endpoint: this.config.endpoint, region: this.config.region });
+    this.s3 = new S3({
+      endpoint: this.config.endpoint,
+      region: this.config.region,
+      s3ForcePathStyle: this.config.s3ForcePathStyle
+    });
   }
 
   async getSecret(): Promise<any> {

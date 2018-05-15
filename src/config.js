@@ -5,4 +5,5 @@ export interface S3Config {
   keyPrefix: string;
   endpoint?: string;
   region?: string;
+  s3ForcePathStyle?: boolean;
 }
