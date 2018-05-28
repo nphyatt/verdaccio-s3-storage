@@ -2,6 +2,17 @@
 
 📦 AWS S3 storage plugin for verdaccio 
 
+### Requirements
+
+* AWS Account
+* Verdaccio server (3.x) (see below)
+
+```
+npm install -g verdaccio@beta
+```
+
+> This plugin is not supported in the version `2.x`
+
 ## Usage
 
 ```
