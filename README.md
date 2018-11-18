@@ -5,7 +5,7 @@
 ### Requirements
 
 * AWS Account
-* Verdaccio server (3.x) (see below)
+* Verdaccio server (>3.0) (see below)
 
 ```
 npm install -g verdaccio@beta
