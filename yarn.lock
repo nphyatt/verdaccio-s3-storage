@@ -440,7 +440,7 @@ asynckit@^0.4.0:
 
 aws-sdk@^2.229.1:
   version "2.229.1"
-  resolved "https://npm.int.remitly.com/aws-sdk/-/aws-sdk-2.229.1.tgz#6123c8acee0de534a0585e1375ee19c4de54a39e"
+  resolved "https://registry.npmjs.org/aws-sdk/-/aws-sdk-2.229.1.tgz#6123c8acee0de534a0585e1375ee19c4de54a39e"
   dependencies:
     buffer "4.9.1"
     events "1.1.1"
@@ -1031,7 +1031,7 @@ balanced-match@^1.0.0:
 
 base64-js@^1.0.2:
   version "1.3.0"
-  resolved "https://npm.int.remitly.com/base64-js/-/base64-js-1.3.0.tgz#cab1e6118f051095e58b5281aea8c1cd22bfc0e3"
+  resolved "https://registry.npmjs.org/base64-js/-/base64-js-1.3.0.tgz#cab1e6118f051095e58b5281aea8c1cd22bfc0e3"
 
 bcrypt-pbkdf@^1.0.0:
   version "1.0.1"
@@ -1107,7 +1107,7 @@ bser@^2.0.0:
 
 buffer@4.9.1:
   version "4.9.1"
-  resolved "https://npm.int.remitly.com/buffer/-/buffer-4.9.1.tgz#6d1bb601b07a4efced97094132093027c95bc298"
+  resolved "https://registry.npmjs.org/buffer/-/buffer-4.9.1.tgz#6d1bb601b07a4efced97094132093027c95bc298"
   dependencies:
     base64-js "^1.0.2"
     ieee754 "^1.1.4"
@@ -1813,7 +1813,7 @@ esutils@^2.0.2:
 
 events@1.1.1:
   version "1.1.1"
-  resolved "https://npm.int.remitly.com/events/-/events-1.1.1.tgz#9ebdb7635ad099c70dcc4c2a1f5004288e8bd924"
+  resolved "https://registry.npmjs.org/events/-/events-1.1.1.tgz#9ebdb7635ad099c70dcc4c2a1f5004288e8bd924"
 
 exec-sh@^0.2.0:
   version "0.2.1"
@@ -2324,11 +2324,11 @@ iconv-lite@0.4.19, iconv-lite@^0.4.17:
 
 ieee754@1.1.8:
   version "1.1.8"
-  resolved "https://npm.int.remitly.com/ieee754/-/ieee754-1.1.8.tgz#be33d40ac10ef1926701f6f08a2d86fbfd1ad3e4"
+  resolved "https://registry.npmjs.org/ieee754/-/ieee754-1.1.8.tgz#be33d40ac10ef1926701f6f08a2d86fbfd1ad3e4"
 
 ieee754@^1.1.4:
   version "1.1.11"
-  resolved "https://npm.int.remitly.com/ieee754/-/ieee754-1.1.11.tgz#c16384ffe00f5b7835824e67b6f2bd44a5229455"
+  resolved "https://registry.npmjs.org/ieee754/-/ieee754-1.1.11.tgz#c16384ffe00f5b7835824e67b6f2bd44a5229455"
 
 ignore@^3.3.3:
   version "3.3.7"
@@ -2915,7 +2915,7 @@ jest@^22.4.3:
 
 jmespath@0.15.0:
   version "0.15.0"
-  resolved "https://npm.int.remitly.com/jmespath/-/jmespath-0.15.0.tgz#a3f222a9aae9f966f5d27c796510e28091764217"
+  resolved "https://registry.npmjs.org/jmespath/-/jmespath-0.15.0.tgz#a3f222a9aae9f966f5d27c796510e28091764217"
 
 js-tokens@^3.0.0, js-tokens@^3.0.2:
   version "3.0.2"
@@ -3165,7 +3165,7 @@ lodash@4.17.4:
 
 lodash@^4.0.0:
   version "4.17.10"
-  resolved "https://npm.int.remitly.com/lodash/-/lodash-4.17.10.tgz#1b7793cf7259ea38fb3661d4d38b3260af8ae4e7"
+  resolved "https://registry.npmjs.org/lodash/-/lodash-4.17.10.tgz#1b7793cf7259ea38fb3661d4d38b3260af8ae4e7"
 
 lodash@^4.13.1, lodash@^4.14.0, lodash@^4.15.0, lodash@^4.17.4, lodash@^4.2.0, lodash@^4.2.1, lodash@^4.3.0:
   version "4.17.5"
@@ -3679,7 +3679,7 @@ pseudomap@^1.0.2:
 
 punycode@1.3.2:
   version "1.3.2"
-  resolved "https://npm.int.remitly.com/punycode/-/punycode-1.3.2.tgz#9653a036fb7c1ee42342f2325cceefea3926c48d"
+  resolved "https://registry.npmjs.org/punycode/-/punycode-1.3.2.tgz#9653a036fb7c1ee42342f2325cceefea3926c48d"
 
 punycode@^1.4.1:
   version "1.4.1"
@@ -3703,7 +3703,7 @@ qs@~6.5.1:
 
 querystring@0.2.0:
   version "0.2.0"
-  resolved "https://npm.int.remitly.com/querystring/-/querystring-0.2.0.tgz#b209849203bb25df820da756e747005878521620"
+  resolved "https://registry.npmjs.org/querystring/-/querystring-0.2.0.tgz#b209849203bb25df820da756e747005878521620"
 
 quick-lru@^1.0.0:
   version "1.1.0"
@@ -4053,7 +4053,7 @@ sane@^2.0.0:
 
 sax@1.2.1:
   version "1.2.1"
-  resolved "https://npm.int.remitly.com/sax/-/sax-1.2.1.tgz#7b8e656190b228e81a66aea748480d828cd2d37a"
+  resolved "https://registry.npmjs.org/sax/-/sax-1.2.1.tgz#7b8e656190b228e81a66aea748480d828cd2d37a"
 
 sax@>=0.6.0, sax@^1.2.4:
   version "1.2.4"
@@ -4452,7 +4452,7 @@ uid-number@^0.0.6:
 
 url@0.10.3:
   version "0.10.3"
-  resolved "https://npm.int.remitly.com/url/-/url-0.10.3.tgz#021e4d9c7705f21bbf37d03ceb58767402774c64"
+  resolved "https://registry.npmjs.org/url/-/url-0.10.3.tgz#021e4d9c7705f21bbf37d03ceb58767402774c64"
   dependencies:
     punycode "1.3.2"
     querystring "0.2.0"
@@ -4474,7 +4474,7 @@ util.promisify@^1.0.0:
 
 uuid@3.1.0:
   version "3.1.0"
-  resolved "https://npm.int.remitly.com/uuid/-/uuid-3.1.0.tgz#3dd3d3e790abc24d7b0d3a034ffababe28ebbc04"
+  resolved "https://registry.npmjs.org/uuid/-/uuid-3.1.0.tgz#3dd3d3e790abc24d7b0d3a034ffababe28ebbc04"
 
 uuid@^3.0.0, uuid@^3.1.0:
   version "3.2.1"
@@ -4608,14 +4608,14 @@ xml-name-validator@^3.0.0:
 
 xml2js@0.4.17:
   version "0.4.17"
-  resolved "https://npm.int.remitly.com/xml2js/-/xml2js-0.4.17.tgz#17be93eaae3f3b779359c795b419705a8817e868"
+  resolved "https://registry.npmjs.org/xml2js/-/xml2js-0.4.17.tgz#17be93eaae3f3b779359c795b419705a8817e868"
   dependencies:
     sax ">=0.6.0"
     xmlbuilder "^4.1.0"
 
 xmlbuilder@4.2.1, xmlbuilder@^4.1.0:
   version "4.2.1"
-  resolved "https://npm.int.remitly.com/xmlbuilder/-/xmlbuilder-4.2.1.tgz#aa58a3041a066f90eaa16c2f5389ff19f3f461a5"
+  resolved "https://registry.npmjs.org/xmlbuilder/-/xmlbuilder-4.2.1.tgz#aa58a3041a066f90eaa16c2f5389ff19f3f461a5"
   dependencies:
     lodash "^4.0.0"
 
