@@ -58,7 +58,13 @@ export default class S3PackageManager implements ILocalPackageManager {
             reject(convertS3Error(err));
             return;
           }
-          const data = JSON.parse(response.Body.toString());
+          let data;
+          try {
+            data = JSON.parse(response.Body.toString());
+          } catch (e) {
+            reject(e);
+            return;
+          }
           resolve(data);
         }
       );
